@@ -42,3 +42,69 @@ abline(h = 0.5, lty = 2, col = "gray50")
 ```
 
 The estimated probability of at least one shared birthday increases with group size. At 23 people, the probability is approximately `r sprintf("%.1f%%", 100 * birthday_results$probability[birthday_results$group_size == 23])`. By 50 people, it reaches approximately `r sprintf("%.1f%%", 100 * birthday_results$probability[birthday_results$group_size == 50])`. Larger groups have more pairs of people who could share a birthday.
+
+## Problem 2
+
+```{r longitudinal-data, message=FALSE}
+library(tidyverse)
+
+longitudinal_data <- tibble(
+  file_path = list.files(
+    "data",
+    pattern = "^(con|exp)_[0-9]+\\.csv$",
+    full.names = TRUE
+  )
+) |>
+  mutate(
+    file_name = tools::file_path_sans_ext(basename(file_path)),
+    measurements = purrr::map(
+      file_path,
+      read_csv,
+      show_col_types = FALSE
+    )
+  ) |>
+  select(file_name, measurements) |>
+  separate_wider_delim(
+    file_name,
+    delim = "_",
+    names = c("arm", "subject_id")
+  ) |>
+  unnest(measurements) |>
+  pivot_longer(
+    cols = starts_with("week_"),
+    names_to = "week",
+    names_prefix = "week_",
+    names_transform = list(week = as.integer),
+    values_to = "observation"
+  ) |>
+  mutate(
+    arm = recode(arm, con = "Control", exp = "Experimental")
+  ) |>
+  arrange(arm, subject_id, week)
+
+knitr::kable(head(longitudinal_data))
+```
+
+```{r longitudinal-plot, fig.width=7, fig.height=4.5}
+ggplot(
+  longitudinal_data,
+  aes(
+    x = week,
+    y = observation,
+    color = arm,
+    group = interaction(arm, subject_id)
+  )
+) +
+  geom_line(alpha = 0.7) +
+  geom_point(size = 1.3, alpha = 0.7) +
+  scale_x_continuous(breaks = sort(unique(longitudinal_data$week))) +
+  labs(
+    title = "Weekly Observations by Study Arm",
+    x = "Week",
+    y = "Observation",
+    color = "Study arm"
+  ) +
+  theme_minimal(base_size = 12)
+```
+
+Observations overlapped between the two arms in the first week. Over time, observations generally increased in the experimental arm, while those in the control arm fluctuated without a clear upward trend. The groups separated more clearly in the later weeks, with experimental participants generally showing higher observations.
