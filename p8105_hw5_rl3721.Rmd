@@ -1,0 +1,44 @@
+---
+title: "P8105 Homework 5"
+output: github_document
+---
+
+## Problem 1
+```{r birthday-simulation, fig.width=7, fig.height=4.5}
+set.seed(8105)
+
+has_shared_birthday <- function(group_size) {
+  birthdays <- sample(1:365, size = group_size, replace = TRUE)
+  any(duplicated(birthdays))
+}
+
+group_sizes <- 2:50
+n_simulations <- 10000
+
+birthday_results <- data.frame(
+  group_size = group_sizes,
+  probability = vapply(
+    group_sizes,
+    function(group_size) {
+      mean(replicate(n_simulations, has_shared_birthday(group_size)))
+    },
+    numeric(1)
+  )
+)
+
+plot(
+  birthday_results$group_size,
+  birthday_results$probability,
+  type = "b",
+  pch = 16,
+  cex = 0.65,
+  col = "steelblue",
+  ylim = c(0, 1),
+  xlab = "Group size",
+  ylab = "Estimated probability",
+  main = "Probability of at Least One Shared Birthday"
+)
+abline(h = 0.5, lty = 2, col = "gray50")
+```
+
+The estimated probability of at least one shared birthday increases with group size. At 23 people, the probability is approximately `r sprintf("%.1f%%", 100 * birthday_results$probability[birthday_results$group_size == 23])`. By 50 people, it reaches approximately `r sprintf("%.1f%%", 100 * birthday_results$probability[birthday_results$group_size == 50])`. Larger groups have more pairs of people who could share a birthday.
